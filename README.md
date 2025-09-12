@@ -9,3 +9,17 @@
 # 신약 개발
 ### 개발 배경 및 동기
 신약 개발에는 많은 비용이 소모되기 때문에 대부분의 국내 제약회사가 특허가 만료된 제네릭 제품 위주로 개발을 진행하고 있음.<br> 이와같은 문제를 해결하여 국내 기업들에게 도움이 되고자 아래와 같은 해결 방안 및 기술들을 제안 및 설계함
+
+# 논문
+
+[신약개발에서의 AI 기술 활용 현황과 미래] https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE10818476<br>
+[딥러닝을 이용한 약물 화학 구조 예측] https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE10528654<br>
+[인공지능 기술을 활용한 신약개발 과정 혁신] https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE11163780<br>
+[신약개발을 위한 인공지능 기술 동향] https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE10621167<br>
+[한층 더 가까워진 인공지능 기술과 신약개발 데이터의 융합] https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE11921608<br>
+[텍스트 마이닝을 이용한 인공지능 활용 신약 개발 연구 동향 분석] https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE11506538<br>
+[AI가 바꾸는 신약개발의 미래] https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE12176250<br>
+[신약개발 선도국 도약, 어떻게 할 것인가?] https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE12176244<br>
+[2023년 신약개발 정부 R&D 투자 포트폴리오 분석] https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE12134225<br>
+[AI 기반 신약개발 분야의 특허를 활용한 국가 기술경쟁력 분석] https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE12299039<br>
+
