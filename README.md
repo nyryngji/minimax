@@ -10,6 +10,9 @@
 ### 개발 배경 및 동기
 신약 개발에는 많은 비용이 소모되기 때문에 대부분의 국내 제약회사가 특허가 만료된 제네릭 제품 위주로 개발을 진행하고 있음.<br> 이와같은 문제를 해결하여 국내 기업들에게 도움이 되고자 아래와 같은 해결 방안 및 기술들을 제안 및 설계함
 
+# 서비스 구성도
+<img width="800" height="450" alt="세부 졸작 기획" src="https://github.com/user-attachments/assets/ded5c6f8-000c-4f78-aa7e-210a023bfa4d" />
+
 # 논문
 
 [신약개발에서의 AI 기술 활용 현황과 미래](https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE10818476)<br>
