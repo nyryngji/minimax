@@ -20,5 +20,5 @@ pip install -r requirements.txt
 ```bash
 uvicorn main:app --reload
 ```
-#### 4. http://127.0.0.1:8000/docs로 들어가기 
+#### 4. http://127.0.0.1:8000/docs 로 들어가기 
 - AI 모델 때문에 들어가는데 시간 좀 걸림
