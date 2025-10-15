@@ -1,0 +1,6 @@
+{
+  "max_x_len": 64,
+  "pad_token": "[PAD]",
+  "sos_token": "[SOS]",
+  "eos_token": "[EOS]"
+}
