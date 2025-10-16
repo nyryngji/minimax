@@ -4,6 +4,27 @@ INCREMENT BY 1
 NOCACHE              
 NOCYCLE; 
 
+CREATE SEQUENCE SEQ_USER_GEN
+START WITH 1       
+INCREMENT BY 1       
+NOCACHE              
+NOCYCLE; 
+
+CREATE TABLE user_input 
+    ( 
+     u_chembl_id    VARCHAR2 (100)  NOT NULL , 
+     u_name         VARCHAR2 (100)  NOT NULL , 
+     u_canosmiles   VARCHAR2 (500)  NOT NULL , 
+     u_formula      VARCHAR2 (300)  NOT NULL , 
+     u_type         VARCHAR2 (100)  NOT NULL , 
+     u_image_base64 CLOB  NOT NULL 
+    ) 
+;
+
+ALTER TABLE user_input 
+    ADD CONSTRAINT disease_scaffold_dbv1_PK PRIMARY KEY ( u_chembl_id ) ;
+
+
 CREATE TABLE disease_generative 
     ( 
      dnew_chembl_id    VARCHAR2 (100)  NOT NULL , 
@@ -27,5 +48,48 @@ CREATE TABLE disease_generative
 ALTER TABLE disease_generative 
     ADD CONSTRAINT disease_inputv1_PK PRIMARY KEY ( dnew_name ) ;
 
+CREATE TABLE user_generative 
+    ( 
+     unew_chembl_id    VARCHAR2 (100)  NOT NULL , 
+     unew_name         VARCHAR2 (100)  NOT NULL , 
+     unew_canosmiles   VARCHAR2 (500)  NOT NULL , 
+     unew_image_base64 CLOB  NOT NULL , 
+     unew_mol_weight   NUMBER  NOT NULL , 
+     unew_logp         NUMBER  NOT NULL , 
+     unew_qed          NUMBER  NOT NULL , 
+     unew_hbd          NUMBER  NOT NULL , 
+     unew_hba          NUMBER  NOT NULL , 
+     unew_pki_res      VARCHAR2 (20)  NOT NULL , 
+     unew_pki          NUMBER  NOT NULL , 
+     unew_pkd_res      VARCHAR2 (20)  NOT NULL , 
+     unew_pkd          NUMBER  NOT NULL , 
+     unew_toxic        NUMBER  NOT NULL 
+    ) 
+;
 
-select * from DISEASE_GENERATIVE;
+ALTER TABLE user_generative 
+    ADD CONSTRAINT disease_generativev1_PK PRIMARY KEY ( unew_name ) ;
+
+CREATE TABLE disease_input 
+    ( 
+     d_chembl_id       VARCHAR2 (100)  NOT NULL , 
+     d_name            VARCHAR2 (100)  NOT NULL , 
+     d_canosmiles      VARCHAR2 (500)  NOT NULL , 
+     d_formula         VARCHAR2 (300)  NOT NULL , 
+     d_type            VARCHAR2 (100)  NOT NULL , 
+     d_detail_category VARCHAR2 (20)  NOT NULL , 
+     d_image_base64    CLOB  NOT NULL , 
+     d_category        VARCHAR2 (20)  NOT NULL 
+    ) 
+;
+
+ALTER TABLE disease_input 
+    ADD CONSTRAINT disease_scaffold_db_PK PRIMARY KEY ( d_name ) ;
+
+truncate table user_input;
+
+select * from user_input;
+
+TRUNCATE table user_generative;
+
+select * from user_generative;

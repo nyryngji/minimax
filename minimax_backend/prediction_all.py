@@ -18,7 +18,8 @@ from rdkit.Chem.Scaffolds import MurckoScaffold
 import pubchempy as pcp
 from rdkit.Chem.Draw import rdMolDraw2D
 import base64, json
-
+from chembl_webresource_client.new_client import new_client
+import oracledb
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 file_path = 'D:\minimax_project\minimax_backend\model\\for_predict_file'
@@ -44,7 +45,17 @@ kd_mol_model.eval()
 bapulm_model = BAPULM(hidden_dim=512).to(device)
 bapulm_model.load_state_dict(torch.load(file_path + "\kd_model.pth", map_location=device))
 bapulm_model.eval()
- 
+
+oracledb.init_oracle_client(lib_dir=r"D:\\instantclient_23_9")
+
+conn = oracledb.connect(
+    user="adsql",          # 사용자명
+    password="oracle_4U",      # 비밀번호
+    dsn="localhost:1521/xe" # 접속 정보 (SQL Developer와 동일)
+)
+
+cur = conn.cursor()
+
 # 1. 독성 예측 함수
 
 def ChemBERTa_feature(smiles):    
@@ -265,3 +276,29 @@ def make_smiles(smiles): # 분자 생성
 		pass
 	
 	return new_molecule_list
+
+# Chembl에서 분자 관련 info 반환
+def return_chembl_data(moluecule_name):
+    molecule = new_client.molecule
+    res = molecule.filter(pref_name__icontains=moluecule_name)
+    if res:
+        mol = res[0]
+        return [
+            mol["molecule_chembl_id"],
+            mol.get("pref_name"),
+            mol["molecule_structures"]["canonical_smiles"],
+            mol["molecule_properties"]["full_molformula"],
+            mol["molecule_type"],
+            smiles_to_svg_base64(mol["molecule_structures"]["canonical_smiles"])
+        ]
+
+# SQL insert문으로 DB에 데이터 넣기
+def insert_data(table_name, db_col, data):
+    columns = ', '.join(db_col)
+    placeholders = ', '.join([f':{k}' for k in db_col])
+
+    sql = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+    
+    dic = dict(zip(db_col, data))
+    cur.execute(sql, dic)
+    conn.commit()
