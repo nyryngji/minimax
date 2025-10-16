@@ -1,2 +1,9 @@
 .venv/
 venv/
+
+cache/
+*.cache
+__pycache__/
+*/__pycache__/
+build/cache/
+node_modules/.cache/
