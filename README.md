@@ -18,6 +18,7 @@ pip install -r requirements.txt
 
 #### 3. 웹서버 시작하기
 ```bash
+& D:/minimax/.venv/Scripts/Activate.ps1
 uvicorn main:app --reload
 ```
 #### 4. http://127.0.0.1:8000/docs 로 들어가기 
@@ -29,10 +30,18 @@ uvicorn main:app --reload
   - 기능 : 사용자가 입력받은 분자를 기반으로 분자 생성까지 해서 DB에 집어넣음 
   - 출력 : - 
 
-- /from_disease_button : 
+- /button_diy : 
   - 입력 : 버튼 눌러서 db에 저장되어 있는 분자 불러오기 
   - 기능 : db에 저장되어 있는 분자 불러와서 분자 생성까지 해서 DB에 집어넣음
   - 출력 : -
 
+- /user_diy_show : 
+  - 입력 : 유저가 입력한 분자 정보를 바탕으로 저장한 분자 불러오기 
+  - 기능 : 원조 분자 + 새로 생성된 분자 조회
+  - 출력 : -
 
+- /button_diy_show : 
+  - 입력 : 버튼 눌러서 저장한 분자 불러오기 
+  - 기능 : 원조 분자 + 새로 생성된 분자 조회
+  - 출력 : -
 
