@@ -1,0 +1,26 @@
+[
+  {
+    "D_CHEMBL_ID": "CHEMBL2103868",
+    "D_CANOSMILES": "COc1cc2nccc(Oc3ccc(NC(=O)C4(C(=O)Nc5ccc(F)cc5)CC4)cc3)c2cc1OC.O=C(O)C[C@H](O)C(=O)O",
+    "D_CATEGORY": "암 치료제",
+    "dnew_name": [
+      "DNEW_MOLECULE333",
+      "DNEW_MOLECULE334",
+      "DNEW_MOLECULE335",
+      "DNEW_MOLECULE336",
+      "DNEW_MOLECULE337"
+    ]
+  },
+  {
+    "D_CHEMBL_ID": "CHEMBL481",
+    "D_CANOSMILES": "CCc1c2c(nc3ccc(OC(=O)N4CCC(N5CCCCC5)CC4)cc13)-c1cc3c(c(=O)n1C2)COC(=O)[C@]3(O)CC",
+    "D_CATEGORY": "암 치료제",
+    "dnew_name": [
+      "DNEW_MOLECULE338",
+      "DNEW_MOLECULE339",
+      "DNEW_MOLECULE340",
+      "DNEW_MOLECULE341",
+      "DNEW_MOLECULE342"
+    ]
+  }
+]

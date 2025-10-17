@@ -228,13 +228,19 @@ def smiles_to_scaffold(smiles): # smiles -> scaffold
 	return Chem.MolToSmiles(scaffold)
 
 def smiles_to_svg_base64(smiles: str, size=(300, 300)) -> str:
-    mol = Chem.MolFromSmiles(smiles)
-    drawer = rdMolDraw2D.MolDraw2DSVG(size[0], size[1])
-    rdMolDraw2D.PrepareAndDrawMolecule(drawer, mol)
-    drawer.FinishDrawing()
-    svg = drawer.GetDrawingText()
-    # Base64 인코딩
-    return base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+	mol = Chem.MolFromSmiles(smiles)
+	if mol is None:
+		raise ValueError("유효하지 않은 SMILES 문자열입니다.")
+
+	# 분자 구조를 SVG로 그림
+	drawer = rdMolDraw2D.MolDraw2DSVG(size[0], size[1])
+	rdMolDraw2D.PrepareAndDrawMolecule(drawer, mol)
+	drawer.FinishDrawing()
+
+	# SVG 텍스트 정리
+	svg = drawer.GetDrawingText().replace("\n", "").strip()
+	encoded = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
+	return encoded  
 
 def make_smiles(smiles): # 분자 생성
 	checkpoint = torch.load(file_path + '\model_checkpoint.pt', map_location=device, weights_only=False)
