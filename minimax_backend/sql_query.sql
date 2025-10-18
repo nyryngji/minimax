@@ -86,11 +86,27 @@ CREATE TABLE user_generative
 ALTER TABLE user_generative 
     ADD CONSTRAINT disease_generativev1_PK PRIMARY KEY ( unew_name, unew_canosmiles ) ;
 
+CREATE TABLE optim_molecule 
+    ( 
+     onew_origin_name  VARCHAR2 (100)  NOT NULL , 
+     onew_name         VARCHAR2 (100)  NOT NULL , 
+     onew_canosmiles   VARCHAR2 (500)  NOT NULL , 
+     onew_image_base64 CLOB  NOT NULL , 
+     onew_mol_weight   NUMBER  NOT NULL , 
+     onew_logp         NUMBER  NOT NULL , 
+     onew_qed          NUMBER  NOT NULL , 
+     onew_hbd          NUMBER  NOT NULL , 
+     onew_hba          NUMBER  NOT NULL , 
+     onew_pki_res      VARCHAR2 (20)  NOT NULL , 
+     onew_pki          NUMBER  NOT NULL , 
+     onew_pkd_res      VARCHAR2 (20)  NOT NULL , 
+     onew_pkd          NUMBER  NOT NULL , 
+     onew_toxic        NUMBER  NOT NULL , 
+     onew_optim_time   DATE  NOT NULL 
+    ) 
+;
 
-select * from DISEASE_GENERATIVE;
+ALTER TABLE optim_molecule 
+    ADD CONSTRAINT disease_generativev1_PKv1 PRIMARY KEY ( onew_name ) ;
 
-select * from disease_input;
 
-select * from user_input;
-
-select * from user_generative;

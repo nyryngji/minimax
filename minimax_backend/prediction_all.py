@@ -308,3 +308,5 @@ def insert_data(table_name, db_col, data):
     dic = dict(zip(db_col, data))
     cur.execute(sql, dic)
     conn.commit()
+    
+# 유전 알고리즘
