@@ -91,9 +91,6 @@ async def predict(request: Request):
 async def predict(request: Request):
     user_selected_button = '암 치료제' # 입력 : 누른 버튼 이름 
 
-    sql = f"SELECT D_CHEMBL_ID, D_CANOSMILES, D_CATEGORY FROM disease_input where d_category = '{user_selected_button}'"
-    sql_res = pd.read_sql(sql, conn)
-
     sql_res = pd.read_csv('disease_input.csv')
     sql_res = sql_res[sql_res['D_CATEGORY'] == user_selected_button]
     randoms = [0,1]
@@ -420,6 +417,9 @@ async def predict(request: Request):
         dic['DIFF_INFO'] = dict(zip([i[5:] + '_DIFF' for i in optim_diff_col], diff_res[0].tolist()))
         return_value.append(dic)
     
+    with open("optim_molecule_show.json", "w", encoding="utf-8") as f:
+        json.dump(return_value, f, ensure_ascii=False, indent=2)
+        
     return {'return_value': return_value}
     # 이제 이 값으로 분자 최적화 전후 값 비교
     
