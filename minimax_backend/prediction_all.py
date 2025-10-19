@@ -211,7 +211,6 @@ def predict_pKd(smiles):
 	return results[0]
 
 # 5. transformer 분자 생성
-
 def isit_available_medicine(mol): # 이 분자가 쓸만한가
 	# logp 계산 : 분자가 수용성인지, 지용성인지
 	logp = Crippen.MolLogP(mol)
@@ -319,4 +318,3 @@ def insert_data(table_name, db_col, data):
     cur.execute(sql, dic)
     conn.commit()
     
-# 유전 알고리즘

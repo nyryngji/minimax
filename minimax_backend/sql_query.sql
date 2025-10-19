@@ -102,7 +102,8 @@ CREATE TABLE optim_molecule
      onew_pkd_res      VARCHAR2 (20)  NOT NULL , 
      onew_pkd          NUMBER  NOT NULL , 
      onew_toxic        NUMBER  NOT NULL , 
-     onew_optim_time   DATE  NOT NULL 
+     onew_optim_time   DATE  NOT NULL , 
+     onew_best         NUMBER  NOT NULL 
     ) 
 ;
 
