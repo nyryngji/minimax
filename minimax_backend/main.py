@@ -13,14 +13,25 @@ from chembl_webresource_client.new_client import new_client
 
 app = FastAPI()
 
-oracledb.init_oracle_client(lib_dir=r"D:\\instantclient_23_9")
+# oracledb.init_oracle_client(lib_dir=r"D:\\instantclient_23_9")
+try:
+    oracledb.init_oracle_client(lib_dir=r"D:\\instantclient_23_9")
+    conn = oracledb.connect(
+        user="adsql",          
+        password="oracle_4U",      
+        dsn="localhost:1521/xe" 
+    )
+    cur = conn.cursor()
+    ORACLE_AVAILABLE = True
+    print("Oracle database connected successfully")
+except Exception as e:
+    print(f"Oracle database not available: {e}")
+    print("Running without Oracle database...")
+    ORACLE_AVAILABLE = False
+    conn = None
+    cur = None
 
-conn = oracledb.connect(
-    user="adsql",          # 사용자명
-    password="oracle_4U",      # 비밀번호
-    dsn="localhost:1521/xe" # 접속 정보 (SQL Developer와 동일)
-)
-cur = conn.cursor()
+
 
 # 프론트엔드와 통신 허용 (CORS)
 app.add_middleware(

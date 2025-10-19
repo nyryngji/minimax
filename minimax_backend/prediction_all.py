@@ -22,12 +22,12 @@ from chembl_webresource_client.new_client import new_client
 import oracledb
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-file_path = 'D:\minimax_project\minimax_backend\model\\for_predict_file'
+file_path = r'C:\Users\Owner\Documents\JM\minimax\minimax_backend\model\for_predict_file'
 
-toxic_pca = joblib.load(file_path + "\\toxic_pca.pkl")
-toxic_model = joblib.load(file_path + "\\toxic_model.pkl")
+toxic_pca = joblib.load(os.path.join(file_path, "toxic_pca.pkl"))
+toxic_model = joblib.load(os.path.join(file_path, "toxic_model.pkl"))
 
-SAVE_PATH = os.path.join(file_path + "\ki_model.pt")
+SAVE_PATH = os.path.join(file_path, "ki_model.pt")
 
 PROT_MODEL = "facebook/esm2_t6_8M_UR50D"
 CHEM_MODEL = "DeepChem/ChemBERTa-77M-MLM"
@@ -43,18 +43,28 @@ kd_mol_model = AutoModel.from_pretrained("ibm/MoLFormer-XL-both-10pct", trust_re
 kd_mol_model.eval()
 
 bapulm_model = BAPULM(hidden_dim=512).to(device)
-bapulm_model.load_state_dict(torch.load(file_path + "\kd_model.pth", map_location=device))
+bapulm_model.load_state_dict(torch.load(os.path.join(file_path, "kd_model.pth"), map_location=device))
 bapulm_model.eval()
 
-oracledb.init_oracle_client(lib_dir=r"D:\\instantclient_23_9")
+# oracledb.init_oracle_client(lib_dir=r"D:\\instantclient_23_9")
+try:
+    oracledb.init_oracle_client(lib_dir=r"D:\\instantclient_23_9")
+    conn = oracledb.connect(
+        user="adsql",          
+        password="oracle_4U",      
+        dsn="localhost:1521/xe" 
+    )
+    cur = conn.cursor()
+    ORACLE_AVAILABLE = True
+    print("Oracle database connected successfully")
+except Exception as e:
+    print(f"Oracle database not available: {e}")
+    print("Running without Oracle database...")
+    ORACLE_AVAILABLE = False
+    conn = None
+    cur = None
+    
 
-conn = oracledb.connect(
-    user="adsql",          # 사용자명
-    password="oracle_4U",      # 비밀번호
-    dsn="localhost:1521/xe" # 접속 정보 (SQL Developer와 동일)
-)
-
-cur = conn.cursor()
 
 # 1. 독성 예측 함수
 
@@ -148,7 +158,7 @@ def predict_pKi(smiles):
 		preds.sort(key=lambda x: x[1], reverse=True)
 		return preds
 
-	fasta_info = pd.read_csv(file_path + '\\for_binding_affinity_predict.csv')
+	fasta_info = pd.read_csv(os.path.join(file_path, 'for_binding_affinity_predict.csv'))
 	target_names  = fasta_info["타겟 질환"].tolist()
 	target_fastas = fasta_info["fasta"].tolist()
 
@@ -187,11 +197,11 @@ def predict_pKd(smiles):
 			output = model(x)
 		return float(output.item())
 
-	target_df = pd.read_csv(file_path + "\\for_binding_affinity_predict.csv")
+	target_df = pd.read_csv(os.path.join(file_path, "for_binding_affinity_predict.csv"))
 	target_names = target_df['타겟 질환'].tolist()
 
 	mol_embeddings = get_molformer_embedding(smiles, device)
-	prot_embeddings = np.load(file_path + "\\fasta_embedding.npy")
+	prot_embeddings = np.load(os.path.join(file_path, "fasta_embedding.npy"))
 
 	results = []
 	for j, target_name in enumerate(target_names):
@@ -243,7 +253,7 @@ def smiles_to_svg_base64(smiles: str, size=(300, 300)) -> str:
 	return encoded  
 
 def make_smiles(smiles): # 분자 생성
-	checkpoint = torch.load(file_path + '\model_checkpoint.pt', map_location=device, weights_only=False)
+	checkpoint = torch.load(os.path.join(file_path, 'model_checkpoint.pt'), map_location=device, weights_only=False)
 	token2id = checkpoint['token2id']
 	id2token = checkpoint['id2token']
 

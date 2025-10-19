@@ -3,7 +3,7 @@ import torch.nn as nn
 import math
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-file_path = 'D:\minimax_project\minimax_backend\model\\for_predict_file'
+file_path = r'C:\Users\Owner\Documents\JM\minimax\minimax_backend\model\for_predict_file'
 
 checkpoint = torch.load(file_path + '\\model_checkpoint.pt', map_location=device, weights_only=False)
 token2id = checkpoint['token2id']
