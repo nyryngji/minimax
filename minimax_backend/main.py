@@ -38,7 +38,7 @@ app.add_middleware(
 async def predict(request: Request): 
     user_input = 'caffeine'
     user_input_data = return_chembl_data(user_input)
-
+    
     select_user_input = pd.read_csv('user_input.csv')
     select_user_input = select_user_input.iloc[0:0]
 
@@ -46,6 +46,13 @@ async def predict(request: Request):
     select_user_input.to_csv('user_input.csv',index=False)
 
     user_input_info = select_user_input.to_dict(orient='records')[0]
+    user_input_mol = Chem.MolFromSmiles(user_input_data[2])
+    user_input_mol_feature1 = isit_available_medicine(user_input_mol)[1:3] # [logp, qed]
+    user_input_info['U_LOGP'] = user_input_mol_feature1[0]
+    user_input_info['U_QED'] = user_input_mol_feature1[1]
+    user_input_info['U_PKI'] = predict_pKi(user_input_data[2])[1]
+    user_input_info['U_PKD'] = predict_pKd(user_input_data[2])[1]
+    user_input_info['U_TOXIC'] = toxic_predict(user_input_data[2])
 
     user_gen_db = pd.read_csv('user_generative.csv')
     user_gen_db = user_gen_db.iloc[0:0]
@@ -123,6 +130,7 @@ async def predict(request: Request):
                 toxic = [toxic_predict(res[2])]
                 res2 = res + pki + pkd + toxic + [user_selected_button]
                 sql2_res.loc[len(sql2_res)] = res2
+                print(res[0:2] + res2[-4:])
                 print('삽입 성공')
             except:
                 print('데이터 에러 발생')
@@ -342,19 +350,17 @@ async def predict(request: Request):
         data = json.load(f)   # JSON → 파이썬 딕셔너리/리스트 변환
 
     data = token2id
+    return_value = {}
 
-    # 최적화 버튼을 눌렀을 때
-    mode = 'user_diy'
-
-    # 1. 만약 이게 user가 입력해서 만든 분자를 최적화하려는 거면
-    if mode == 'user_diy':
+    choose_optim = 'DNEW_MOLECULE3' # 이건 사용자가 클릭한 분자의 name
+    # 클릭만 하면 바뀌는 거로!
+    if choose_optim[0] == 'U':
         df = pd.read_csv('user_generative.csv')
         col_start = 'U'
-    else: # 버튼 누른거면
+    else:
         df = pd.read_csv('disease_generative.csv')
         col_start = 'D'
-
-    choose_optim = f'{col_start}NEW_MOLECULE3' # 이건 사용자가 클릭한 분자의 name
+    
     will_opt = df[df[f'{col_start}NEW_NAME'] == choose_optim].to_dict(orient='records')[0]
     orig_features = will_opt
 
@@ -364,6 +370,7 @@ async def predict(request: Request):
     gen_size = 4
 
     best_results = []
+    after_optim_mol = []
     target = orig_features[f'{col_start}NEW_CANOSMILES']
 
     mol = Chem.MolFromSmiles(target)
@@ -380,11 +387,15 @@ async def predict(request: Request):
         best_results.append(best_result)
 
     optim_molecule = optim_molecule.drop_duplicates('ONEW_CANOSMILES')
+    optim_molecule['ONEW_IMAGE_BASE64'] = optim_molecule['ONEW_IMAGE_BASE64'].apply(lambda x: x.read() if hasattr(x, 'read') else x)
     optim_molecule.loc[optim_molecule['ONEW_CANOSMILES'].isin([i[1] for i in best_results]),'ONEW_BEST'] = 1
     optim_molecule.to_csv('optim_molecule.csv',index=False)
 
-    return {'best_result_smiles' : [i[1] for i in best_results],
-            'col_start':col_start}
+    return_value['best_result_smiles'] = optim_molecule[optim_molecule['ONEW_BEST'] == 1]['ONEW_NAME'].iloc[0]
+    return_value['col_start'] = col_start
+    return_value['after_optim_mols'] = list(optim_molecule['ONEW_NAME'])
+
+    return {'optim_return_value' : return_value}
 
 @app.post("/optim_molecule_show")
 async def predict(request: Request):
