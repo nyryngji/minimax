@@ -189,19 +189,19 @@ def predict_pKd(smiles):
 
 # 5. transformer 분자 생성
 
-def isit_available_medicine(mol): # 이 분자가 쓸만한가
-	# logp 계산 : 분자가 수용성인지, 지용성인지
-	logp = Crippen.MolLogP(mol)
+# def isit_available_medicine(mol): # 이 분자가 쓸만한가
+# 	# logp 계산 : 분자가 수용성인지, 지용성인지
+# 	logp = Crippen.MolLogP(mol)
 
-	# QED 계산 : 화합물이 약처럼 될 가능성을 수치화(0~1까지)
-	qed = QED.qed(mol)
+# 	# QED 계산 : 화합물이 약처럼 될 가능성을 수치화(0~1까지)
+# 	qed = QED.qed(mol)
 
-	molecule_weight = Descriptors.MolWt(mol) # 500 이하
+# 	molecule_weight = Descriptors.MolWt(mol) # 500 이하
 
-	hbd = Lipinski.NumHDonors(mol) # 수소 결합 주개(5개 이하)
-	hba = Lipinski.NumHAcceptors(mol) # 수소 결합 받개(10개 이하)
+# 	hbd = Lipinski.NumHDonors(mol) # 수소 결합 주개(5개 이하)
+# 	hba = Lipinski.NumHAcceptors(mol) # 수소 결합 받개(10개 이하)
 	
-	return [molecule_weight, logp, qed, hbd, hba]
+# 	return [molecule_weight, logp, qed, hbd, hba]
 
 def find_molecule_exists(mol): # 새로 만들어진 물질이 기존에 존재하는 것인지 아닌지 확인
 		inchikey = inchi.MolToInchiKey(mol)

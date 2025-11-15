@@ -18,7 +18,7 @@ from rdkit.Chem.Scaffolds import MurckoScaffold
 import pubchempy as pcp
 from rdkit.Chem.Draw import rdMolDraw2D
 import base64, json
-from chembl_webresource_client.new_client import new_client
+# from chembl_webresource_client.new_client import new_client
 import oracledb
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -46,6 +46,13 @@ bapulm_model = BAPULM(hidden_dim=512).to(device)
 bapulm_model.load_state_dict(torch.load(file_path + "\kd_model.pth", map_location=device))
 bapulm_model.eval()
 
+checkpoint = torch.load(file_path + '\model_checkpoint.pt', map_location=device, weights_only=False)
+token2id = checkpoint['token2id']
+id2token = checkpoint['id2token']
+
+config = checkpoint['config'].copy()
+config['max_len'] = checkpoint['max_len']
+ 
 oracledb.init_oracle_client(lib_dir=r"D:\\instantclient_23_9")
 
 conn = oracledb.connect(
@@ -57,7 +64,6 @@ conn = oracledb.connect(
 cur = conn.cursor()
 
 # 1. 독성 예측 함수
-
 def ChemBERTa_feature(smiles):    
 	chem_model_name = 'seyonec/ChemBERTa-zinc-base-v1'
 	chem_tokenizer = AutoTokenizer.from_pretrained(chem_model_name)
@@ -88,7 +94,7 @@ def toxic_predict(smiles):
 	df_pca = toxic_pca.transform(np.array(new_smiles_feature).reshape(1,-1))
 	return toxic_model.predict(df_pca)[0].sum() / 5
 
-# 2. 분자 특성 추출 : logp, qed, hbd, hba
+# 2. 리핀스키 5규칙
 def lipinski_rule(mol):
 	# logp 계산 : 분자가 수용성인지, 지용성인지
 	logp = Crippen.MolLogP(mol)
@@ -101,7 +107,10 @@ def lipinski_rule(mol):
 	hbd = Lipinski.NumHDonors(mol) # 수소 결합 주개(5개 이하)
 	hba = Lipinski.NumHAcceptors(mol) # 수소 결합 받개(10개 이하)
 	
-	return [molecule_weight, logp, qed, hbd, hba]
+	if logp <= 5 and hbd <= 5 and hba <= 10 and molecule_weight <= 500:
+		return True # 해당 조건 4가지를 모두 만족하면 True 반환
+	else:
+		return False
 
 # 3. pKi 예측
 def predict_pKi(smiles):
@@ -154,7 +163,7 @@ def predict_pKi(smiles):
 
 	ranked = predict_for_targets(smiles, target_names, target_fastas)
 	ranked.sort(key= lambda x : -x[1])
-	return pd.Series([ranked[0][0], ranked[0][1]])
+	return pd.Series([ranked[0][0], round(ranked[0][1],2)])
 
 # 4. pKd 예측
 def predict_pKd(smiles):
@@ -201,19 +210,6 @@ def predict_pKd(smiles):
 	return results[0]
 
 # 5. transformer 분자 생성
-def isit_available_medicine(mol): # 이 분자가 쓸만한가
-	# logp 계산 : 분자가 수용성인지, 지용성인지
-	logp = Crippen.MolLogP(mol)
-
-	# QED 계산 : 화합물이 약처럼 될 가능성을 수치화(0~1까지)
-	qed = QED.qed(mol)
-
-	molecule_weight = Descriptors.MolWt(mol) # 500 이하
-
-	hbd = Lipinski.NumHDonors(mol) # 수소 결합 주개(5개 이하)
-	hba = Lipinski.NumHAcceptors(mol) # 수소 결합 받개(10개 이하)
- 
-	return [molecule_weight, logp, qed, hbd, hba]
 
 def find_molecule_exists(mol): # 새로 만들어진 물질이 기존에 존재하는 것인지 아닌지 확인
 		inchikey = inchi.MolToInchiKey(mol)
@@ -241,22 +237,14 @@ def smiles_to_svg_base64(smiles: str, size=(300, 300)) -> str:
 	encoded = base64.b64encode(svg.encode("utf-8")).decode("utf-8")
 	return encoded  
 
-def make_smiles(smiles): # 분자 생성
-	checkpoint = torch.load(file_path + '\model_checkpoint.pt', map_location=device, weights_only=False)
-	token2id = checkpoint['token2id']
-	id2token = checkpoint['id2token']
-
-	config = checkpoint['config'].copy()
-	config['max_len'] = checkpoint['max_len']
-
-	# 모델 생성
+def generate_smiles(cano_scaffold):
+    # 모델 생성
 	model = Transformer(**config) # 모델 파라미터 정보
 
 	# 학습된 파라미터 로드
 	model.load_state_dict(checkpoint['model_state_dict'], strict=False)
-	
-	new_scaffold = smiles_to_scaffold(smiles)
-	cano_scaffold = Chem.MolToSmiles(Chem.MolFromSmiles(new_scaffold), canonical=True)
+	model.eval()
+ 
 	sca_list = list(sf.split_selfies(sf.encoder(cano_scaffold)))
 	token_sca_list = [token2id[i] for i in sca_list]
 
@@ -264,38 +252,27 @@ def make_smiles(smiles): # 분자 생성
 
 	# Here we test some examples to observe how the model predicts
 	example = torch.tensor([res], dtype=torch.long, device=device)
-	
-	new_molecule_list = []
- 
-	result = predict(model, example) # EX) [57, 55, 43, 39, 66, 45, 50, 69, 37, 64]
+
+	result = predict(model, example, temperature = random.uniform(0.8, 1.3)) # EX) [57, 55, 43, 39, 66, 45, 50, 69, 37, 64]
 	tokens = [id2token[i] for i in result if i not in [57, 30, 24]]
 	sf_string = "".join(tokens)
-	news = sf.decoder(sf_string)
-	try:
-		mol = Chem.MolFromSmiles(news) 
-		if find_molecule_exists(mol) is None: # 만약 분자가 기존에 없는 것이라면
-			medicine_standard = isit_available_medicine(mol) # 약이 될 수 있는지 관련 지표를 구해서 
-			new_molecule_list += [news,smiles_to_svg_base64(news)] + medicine_standard # DB에 저장
-			# pki + pkd + [toxic] 까지 추가해야 함 
-	except:
-		pass
+	new_smiles = sf.decoder(sf_string)
 	
-	return new_molecule_list
+	return new_smiles
 
 # Chembl에서 분자 관련 info 반환
-def return_chembl_data(moluecule_name):
-    molecule = new_client.molecule
-    res = molecule.filter(pref_name__icontains=moluecule_name)
-    if res:
-        mol = res[0]
-        return [
-            mol["molecule_chembl_id"],
-            mol.get("pref_name"),
-            mol["molecule_structures"]["canonical_smiles"],
-            mol["molecule_properties"]["full_molformula"],
-            mol["molecule_type"],
-            smiles_to_svg_base64(mol["molecule_structures"]["canonical_smiles"])
-        ]
+def return_chembl_data(molecule_name):
+    compounds = pcp.get_compounds(molecule_name, 'name')
+    c = compounds[0]
+    scaffold = smiles_to_scaffold(c.canonical_smiles)
+    cano_scaffold = Chem.MolToSmiles(Chem.MolFromSmiles(scaffold), canonical=True)
+    return {
+		'pubchem_id' : c.cid,
+		'mol_name' : c.iupac_name,
+		'smiles' : c.canonical_smiles,
+		'scaffold' : cano_scaffold,
+		'formula' : c.molecular_formula
+	}
 
 # SQL insert문으로 DB에 데이터 넣기
 def insert_data(table_name, db_col, data):
@@ -307,4 +284,40 @@ def insert_data(table_name, db_col, data):
     dic = dict(zip(db_col, data))
     cur.execute(sql, dic)
     conn.commit()
+
+
+# 분자의 화학적 특성 반환
+def molecule_chemical_info(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    image_base64 = smiles_to_svg_base64(smiles) # 이미지 base64
+    mol_weight = Descriptors.MolWt(mol)
+    logp = round(Crippen.MolLogP(mol),2)
+    qed = round(QED.qed(mol),2)
+    pki_res, pki = list(predict_pKi(smiles))
+    pkd_res, pkd = list(predict_pKd(smiles))
+    toxic = round(toxic_predict(smiles),2)
     
+    return {'image_base64':image_base64, 
+            'mol_weight':mol_weight,
+            'logp':logp,
+            'qed':qed,
+            'pki_res':pki_res,
+            'pki':pki,
+            'pkd':round(pkd,2),
+            'toxic':toxic}
+
+# 오각형 그래프 그릴 숫자 반환하기
+def calculate_graph_stat(data): # 단일 행 딕셔너리로 넣기
+	min_vals = {'logp': -3, 'qed': 0, 'pki': 0, 'pkd': 0, 'toxic': -10}
+	max_vals = {'logp': 8, 'qed': 1, 'pki': 10, 'pkd': 20, 'toxic': 10}
+
+	make_graph_col = ['logp', 'qed', 'pki', 'pkd', 'toxic']
+	make_graph_col2 = ['logp_graph', 'qed_graph', 'pki_graph', 'pkd_graph', 'toxic_graph']
+
+	norm_vals = [round((data[k] - min_vals[k]) / (max_vals[k] - min_vals[k]),1) for k in make_graph_col]
+	return dict(zip(make_graph_col2, norm_vals))
+
+def lob_to_str(x):
+	if isinstance(x, oracledb.LOB):
+		return x.read()   # CLOB → str / BLOB → bytes
+	return x

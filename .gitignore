@@ -7,3 +7,6 @@ __pycache__/
 */__pycache__/
 build/cache/
 node_modules/.cache/
+
+*.csv
+*/sts-b-dir
