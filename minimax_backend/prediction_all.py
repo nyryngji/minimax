@@ -261,15 +261,15 @@ def generate_smiles(cano_scaffold):
 	return new_smiles
 
 # Chembl에서 분자 관련 info 반환
-def return_chembl_data(molecule_name):
+def return_pubchem_data(molecule_name):
     compounds = pcp.get_compounds(molecule_name, 'name')
     c = compounds[0]
     scaffold = smiles_to_scaffold(c.canonical_smiles)
     cano_scaffold = Chem.MolToSmiles(Chem.MolFromSmiles(scaffold), canonical=True)
     return {
+        'smiles' : c.canonical_smiles,
 		'pubchem_id' : c.cid,
-		'mol_name' : c.iupac_name,
-		'smiles' : c.canonical_smiles,
+		'mol_name' : molecule_name,
 		'scaffold' : cano_scaffold,
 		'formula' : c.molecular_formula
 	}
@@ -284,7 +284,6 @@ def insert_data(table_name, db_col, data):
     dic = dict(zip(db_col, data))
     cur.execute(sql, dic)
     conn.commit()
-
 
 # 분자의 화학적 특성 반환
 def molecule_chemical_info(smiles):
@@ -317,7 +316,36 @@ def calculate_graph_stat(data): # 단일 행 딕셔너리로 넣기
 	norm_vals = [round((data[k] - min_vals[k]) / (max_vals[k] - min_vals[k]),1) for k in make_graph_col]
 	return dict(zip(make_graph_col2, norm_vals))
 
+# # CLOB → str / BLOB → bytes
 def lob_to_str(x):
 	if isinstance(x, oracledb.LOB):
-		return x.read()   # CLOB → str / BLOB → bytes
+		return x.read()   
 	return x
+
+def molecule_chemical_info2(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    mol_weight = Descriptors.MolWt(mol)
+    logp = round(Crippen.MolLogP(mol),2)
+    qed = round(QED.qed(mol),2)
+    pki_res, pki = list(predict_pKi(smiles))
+    pkd_res, pkd = list(predict_pKd(smiles))
+    toxic = round(toxic_predict(smiles),2)
+    
+    return {
+            'mol_weight':mol_weight,
+            'logp':logp,
+            'qed':qed,
+            'pki':pki,
+            'pkd':round(pkd,2),
+            'toxic':toxic}
+    
+def calculate_per(g_mol_chem_info, optim_mol_chem_info):
+	rename_col = dict(zip(g_mol_chem_info.keys(), ['logp','qed','pki','pkd','toxic']))
+	g_mol_chem_info = { rename_col.get(k, k): v for k, v in g_mol_chem_info.items() }
+
+	make_graph_col = ['logp', 'qed', 'pki', 'pkd', 'toxic']
+	make_graph_col2 = ['per_logp', 'per_qed', 'per_pki', 'per_pkd', 'per_toxic']
+
+	norm_vals = [round(((g_mol_chem_info[k] - optim_mol_chem_info[k]) / g_mol_chem_info[k]),1) for k in make_graph_col]
+ 
+	return dict(zip(make_graph_col2, norm_vals))

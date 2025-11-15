@@ -35,170 +35,204 @@ app.add_middleware(
 )
 
 # 여기부터 백엔드 코드 시작
-current_user_seq = 9
+current_user_seq = 1
 
-@app.post("/user_diy")
+@app.post("/user_diy") 
 async def predict(request: Request): 
-    # 1. 사용자 입력 받기
-    molecule_name = 'acetaminophen'.upper()
-    cur.execute("SELECT USER_INPUT_DB_SEQ.NEXTVAL FROM dual")
+    molecule_name = input().upper()
 
-    user_input_pk = {'uinput_seq': cur.fetchone()[0], # 현재 user_input 시퀀스
-                    'user_info_seq' : current_user_seq} # 현재 접속한 유저의 고유값
+    parents_mol_sql = 'select * from parents_mol where rownum <= 1'
+    parents_mol_db_col = pd.read_sql(parents_mol_sql, conn).columns
 
-    pubchem_data = return_chembl_data(molecule_name) # 화학적 정보 pubchem에서 가져오기
+    pubchem_info = return_pubchem_data(molecule_name)
+    new_smiles_chemical_info = molecule_chemical_info(pubchem_info['smiles'])
+    new_smiles_graph_info = calculate_graph_stat(new_smiles_chemical_info)
 
-    # 2. 원조 분자의 화학적 특징 추출하기
-    chemical_info = molecule_chemical_info(pubchem_data['smiles']) # 독성, pki, pkd 등
-    graph_data = calculate_graph_stat(chemical_info) # 이건 오각형 그래프 구현을 위한 값
-    insert_user_input = user_input_pk | pubchem_data | chemical_info | graph_data
+    insert_parents_mol_value = {'user_seq' : current_user_seq} | pubchem_info | new_smiles_chemical_info | {'btn_category' : None} | new_smiles_graph_info | {'category' : 'U'}
 
-    # 3. 원조 분자 정보를 user_input DB에 저장함
-    sql = 'select * from user_input where rownum <= 1'
-    user_input_db_col = pd.read_sql(sql, conn).columns
+    select_pm_query = 'select * from parents_mol where rownum <= 1'
+    parents_mol_db_col = pd.read_sql(select_pm_query, conn).columns
     try:
-        insert_data('user_input', user_input_db_col, insert_user_input.values())
-        conn.commit()
+        insert_data('parents_mol', parents_mol_db_col, insert_parents_mol_value.values())
     except:
-        print('이미 입력한 분자입니다.')
-    
+        print('이미 있는 분자입니다.')
+        continue
+
     # 4. 새로운 분자 생성하기
-    sql2 = 'select * from generative_molecule where rownum <= 1'
+    sql2 = 'select * from generate_mol where rownum <= 1'
     gen_mol_db_col = pd.read_sql(sql2, conn).columns
 
-    for new_smiles in [generate_smiles(insert_user_input['smiles']) for i in range(5)]:
-        try:
-            cur.execute("SELECT GEN_MOL_SEQ.NEXTVAL FROM dual")
-            gen_mol_info = {
-                'gm_seq' : cur.fetchone()[0],
-                'uinput_seq' : user_input_pk['uinput_seq'],
-                'r_seq' : None,
-                'smiles' : new_smiles
-            }
-            mol = Chem.MolFromSmiles(new_smiles)
-            if lipinski_rule(mol): # 만약 리핀스키 5규칙을 만족하면 generative_molecule DB에 새로 생성한 분자 정보 저장
-                new_smiles_chemical_info = molecule_chemical_info(gen_mol_info['smiles'])
-                new_smiles_graph_info = calculate_graph_stat(new_smiles_chemical_info)
-                insert_gen_mol = gen_mol_info | new_smiles_chemical_info | new_smiles_graph_info | {'category' : 'U'}
-                insert_data('generative_molecule', gen_mol_db_col, insert_gen_mol.values())
-        except:
-            print('에러 발생')
-            continue
-        
-    return {'current_user' : current_user_seq}
+    for new_smiles in [generate_smiles(insert_parents_mol_value['smiles']) for i in range(5)]:
+        gen_mol_info = {
+            'user_seq' : current_user_seq,
+            'smiles' : new_smiles
+        }
+        mol = Chem.MolFromSmiles(new_smiles)
+        if lipinski_rule(mol): # 만약 리핀스키 5규칙을 만족하면 generative_molecule DB에 새로 생성한 분자 정보 저장
+            new_smiles_chemical_info = molecule_chemical_info(gen_mol_info['smiles'])
+            new_smiles_graph_info = calculate_graph_stat(new_smiles_chemical_info)
+            insert_gen_mol = gen_mol_info | new_smiles_chemical_info | new_smiles_graph_info | {'category' : 'U'} | {'p_canosmiles' : insert_parents_mol_value['smiles']}
+            try:
+                insert_data('generate_mol', gen_mol_db_col, insert_gen_mol.values())
+            except:
+                print('이미 생성된 분자입니다.')
+                continue
+    
+    rename_col = dict(zip(insert_parents_mol_value.keys(), parents_mol_db_col))
+    user_diy_return_value = { rename_col.get(k, k): v for k, v in insert_parents_mol_value.items() }
+
+    return {'user_diy_return_value' : user_diy_return_value}
 
 @app.post("/button_diy") 
 async def predict(request: Request):
-    user_selected_button = '암 치료제' # 입력 : 누른 버튼 이름 
+    user_selected_button = input() # 입력 : 누른 버튼 이름 
 
-    extract_random_sql = f'''SELECT r_seq, r_canosmiles
+    extract_random_sql = f'''SELECT *
                                 FROM (
                                     SELECT *
-                                    FROM remedy_input
+                                    FROM remedy_list
                                     WHERE r_category = '{user_selected_button}'
                                     ORDER BY DBMS_RANDOM.VALUE
                                 )
                                 WHERE ROWNUM = 1
                                 '''
-    # 저장해놓은 암 치료제 분자 중 랜덤으로 한 행 추출
+    # 저장해놓은 치료제 분자 중 랜덤으로 한 행 추출
 
-    random_smiles = pd.read_sql(extract_random_sql, conn).to_dict(orient='records')[0]
+    random_smiles = pd.read_sql(extract_random_sql, conn)
+    random_smiles = random_smiles.apply(lambda col: col.map(lob_to_str)).iloc[0].to_dict()
 
-    gen_mol_query = 'select * from generative_molecule where rownum <= 1'
-    gen_mol_db_col = pd.read_sql(gen_mol_query, conn).columns
+    select_pm_query = 'select * from parents_mol where rownum <= 1'
+    parents_mol_db_col = pd.read_sql(select_pm_query, conn).columns
+    insert_parents_mol_value = {'user_seq' : 1} | random_smiles | {'p_category' : 'R'}
 
-    for new_smiles in [generate_smiles(random_smiles['R_CANOSMILES']) for i in range(5)]:
-        try:
-            cur.execute("SELECT GEN_MOL_SEQ.NEXTVAL FROM dual")
-            gen_mol_info = {
-                'gm_seq' : cur.fetchone()[0],
-                'uinput_seq' : None,
-                'r_seq' : random_smiles['R_SEQ'],
-                'smiles' : new_smiles
-            }
-            mol = Chem.MolFromSmiles(new_smiles)
-            if lipinski_rule(mol): # 만약 리핀스키 5규칙을 만족하면
-                new_smiles_chemical_info = molecule_chemical_info(gen_mol_info['smiles'])
-                new_smiles_graph_info = calculate_graph_stat(new_smiles_chemical_info)
-                insert_gen_mol = gen_mol_info | new_smiles_chemical_info | new_smiles_graph_info | {'category' : 'R'}
-                insert_data('generative_molecule', gen_mol_db_col, insert_gen_mol.values())
-                # generative_molecule DB에 새로 생성한 분자 정보 저장
-        except:
-            print('에러 발생')
-            continue
-    return {'current_user' : current_user_seq}
+    try:
+        insert_data('parents_mol', parents_mol_db_col, insert_parents_mol_value.values())
+    except:
+        print('이미 존재하는 부모 분자입니다')
 
+    gen_mol_sql = 'select * from generate_mol where rownum <= 1'
+    gen_mol_db_col = pd.read_sql(gen_mol_sql, conn).columns
 
-@app.post("/show_generate_molecule")
-async def predict(request: Request):
-    show_all_mols = {'R' : [], 'U' : []} # R : 버튼 기반, U : 유저 입력 기반
+    for new_smiles in [generate_smiles(insert_parents_mol_value['R_CANOSMILES']) for i in range(5)]:
+        gen_mol_info = {
+            'user_seq' : 1,
+            'smiles' : new_smiles
+        }
+        mol = Chem.MolFromSmiles(new_smiles)
+        if lipinski_rule(mol): # 만약 리핀스키 5규칙을 만족하면 generative_molecule DB에 새로 생성한 분자 정보 저장
+            new_smiles_chemical_info = molecule_chemical_info(gen_mol_info['smiles'])
+            new_smiles_graph_info = calculate_graph_stat(new_smiles_chemical_info)
+            insert_gen_mol = gen_mol_info | new_smiles_chemical_info | new_smiles_graph_info | {'category' : 'U'} | {'p_canosmiles' : insert_parents_mol_value['R_CANOSMILES']}
+            try:		
+                insert_data('generate_mol', gen_mol_db_col, insert_gen_mol.values())
+            except:
+                print('이미 존재하는 생성 분자입니다.')
+                continue
 
-    # remedy_input에 있는 기본 제공 분자 + 버튼으로 생성한 분자 정보 조회하기
-    remedy_gen_sql = f'''select ri.r_seq as ri_r_seq, ri.*,gm.r_seq as gm_r_seq, gm.*
-                        from remedy_input ri 
-                        join generative_molecule gm
-                        on ri.r_seq = gm.r_seq
-                        join g_unique_info gu
-                        on gm.gm_seq = gu.gm_seq
-                        where user_info_seq = {current_user_seq}'''
-
-    # 사용자 입력 분자 + 사용자 입력 분자 기반으로 생성한 분자 정보 조회하기
-    uinput_gen_sql = f'''select ui.uinput_seq ui_seq, ui.*,gm.*
-                        from user_input ui
-                        join generative_molecule gm
-                        on ui.uinput_seq = gm.uinput_seq
-                        where ui.user_info_seq = {current_user_seq}'''
+    rename_col = dict(zip(insert_parents_mol_value.keys(), parents_mol_db_col))
+    btn_diy_return_value = {rename_col.get(k, k): v for k, v in insert_parents_mol_value.items()}
     
-    # sql 쿼리 결과를 pandas 데이터 프레임으로 가져오기
-    remedy_gen_info = pd.read_sql(remedy_gen_sql, conn)
-    uinput_gen_info = pd.read_sql(uinput_gen_sql, conn)
+    return {'btn_diy_return_value' : btn_diy_return_value}
 
-    # on 절로 인한 겹치는 컬럼 제거하기
-    remedy_gen_info = remedy_gen_info.drop('R_SEQ',axis=1)
-    uinput_gen_info = uinput_gen_info.drop('UINPUT_SEQ',axis=1)
+@app.post("/show_parents_mol") 
+async def predict(request: Request):
+    return_value = {
+        "U": [],
+        "R": {}
+    }
 
-    # base64를 str로 전환 (전환 안하면 oracle.CLOB 형태로 보임)
-    remedy_gen_info = remedy_gen_info.apply(lambda col: col.map(lob_to_str))
-    uinput_gen_info = uinput_gen_info.apply(lambda col: col.map(lob_to_str))
+    par_mol_sql = 'select * from parents_mol where user_seq = 1'
+    par_mol_db = pd.read_sql(par_mol_sql, conn)
+    par_mol_db = par_mol_db.apply(lambda col: col.map(lob_to_str))
 
-    # 원조 분자 정보와 생성된 분자 컬럼 분리하기
-    remedy_par_cols = [c for c in remedy_gen_info.columns if c.startswith("R_") or c.startswith("r_")]
-    remedy_child_cols  = [c for c in remedy_gen_info.columns if c not in remedy_par_cols]
+    for i in range(len(par_mol_db)):
+        x = par_mol_db.iloc[i].to_dict()
+        if x['P_CATEGORY'] == 'U':
+            return_value['U'].append(x)
 
-    uinput_par_cols = [c for c in uinput_gen_info.columns if c.startswith("U_") or c.startswith("u_")]
-    uinput_child_cols  = [c for c in uinput_gen_info.columns if c not in uinput_par_cols]
+        else:	
+            if x['P_BTN_CATEGORY'] not in return_value['R']:
+                return_value["R"][x['P_BTN_CATEGORY']] = []
+            return_value["R"][x['P_BTN_CATEGORY']].append(x)
 
-    for r_seq, group in remedy_gen_info.groupby("RI_R_SEQ"):
-        parent = group[remedy_par_cols].iloc[0].to_dict()
-        gm_list = group[remedy_child_cols].to_dict(orient='records')
+    return {'show_parents_mol_return_value' : return_value}
+    
+@app.post("/user_diy_show") 
+async def predict(request: Request):
+    # 부모 분자 중 하나 입력 받기
+    click_par_mol = 'C1=CC(=C(C=C1CC(C(=O)O)N)O)O'
+    find_gen_mol_sql = f"select * from generate_mol where user_seq = {current_user_seq} and p_canosmiles = '{click_par_mol}'"
 
-        # 원조 분자 + 생성된 n개 분자로 딕셔너리에 저장
-        show_all_mols['R'].append({
-            'parent' : parent,
-            'children': gm_list
-        })
+    gen_mol_info = pd.read_sql(find_gen_mol_sql, conn)
+    gen_mol_info = gen_mol_info.apply(lambda col: col.map(lob_to_str))
 
-    for r_seq, group in uinput_gen_info.groupby("UI_SEQ"):
-        parent = group[uinput_par_cols].iloc[0].to_dict()
-        gm_list = group[uinput_child_cols].to_dict(orient='records')
+    return_value = gen_mol_info.to_dict(orient='records')
+    return {'user_diy_show_return_value' : return_value}
 
-        show_all_mols['U'].append({
-            'parent' : parent,
-            'children': gm_list
-        })
-        
-    return {'show_all_mols' : show_all_mols}
+@app.post("/button_diy_show")
+async def predict(request: Request):
+    # 부모 분자 중 하나 입력 받기
+    click_par_mol = 'C1=CC(=C(C=C1CC(C(=O)O)N)O)O'
+    find_gen_mol_sql = f"select * from generate_mol where user_seq = {current_user_seq} and p_canosmiles = '{click_par_mol}'"
+
+    gen_mol_info = pd.read_sql(find_gen_mol_sql, conn)
+    gen_mol_info = gen_mol_info.apply(lambda col: col.map(lob_to_str))
+
+    return_value = gen_mol_info.to_dict(orient='records')
+    return {'button_diy_show_return_value' : return_value}
 
 @app.post("/optim_molecule")
 async def predict(request: Request): # 분자 최적화 수행하기
-    find_target_sql = '''select gm_seq, g_canosmiles from generative_molecule
-					     where rownum <= 1'''
-    target_info = pd.read_sql(find_target_sql, conn).iloc[0].to_dict()
+    target = '[C-1]#[N+1][C-1]=[C-1]C(OP=NCN=COP(=O)(F)F)PCl'
+    gen_size = 3
+    generation = [make_random_chrono(target) for _ in range(gen_size)]
+    orig_chem_info = molecule_chemical_info2(target)
+    max_iter = 2
+    best_fitness = 10
+    iteration = 0
 
-    return {'optim_return_value' : ''}
+    mol = Chem.MolFromSmiles(target)
 
+    # 종료 조건 만족(최적해 발견) 시까지 반복
+    while best_fitness <= 20 and iteration < max_iter:
+        iteration += 1
+        best_chrono, best_fitness = get_best_chrono(generation, orig_chem_info)
+        print('Gen', iteration, '---', 'Best:', best_chrono, 'fitness:', best_fitness)
+        generation = make_offsprings(generation, orig_chem_info, gen_size)
+    
+    
+    g_mol_sql = f"select g_logp, g_qed, g_pki, g_pkd, g_toxic from generate_mol where g_canosmiles = '{target}'"
+    g_mol_chem_info = pd.read_sql(g_mol_sql, conn).iloc[0].to_dict()
+    
+    optim_mol_sql = f"select * from optim_mol where rownum <= 1"
 
+    optim_mol_col = pd.read_sql(optim_mol_sql, conn).columns
+    optim_mol_info = {
+        'user_seq' : 1,
+        'g_canosmiles' : target,
+        'o_canosmiles' : best_chrono,
+    }
+
+    optim_mol_chem_info = molecule_chemical_info(best_chrono)
+    cal_per_optim = calculate_per(g_mol_chem_info, optim_mol_chem_info)
+
+    insert_optim_mol = optim_mol_info | optim_mol_chem_info | cal_per_optim
+
+    try:
+        insert_data('optim_mol', optim_mol_col, insert_optim_mol.values())
+    except:
+        print('이미 생성된 분자입니다.')
+    
+    return {'optim_molecule_return_value' : insert_optim_mol}
 
 @app.post("/optim_molecule_show")
 async def predict(request: Request):
-    return {'' : ''}
+    current_user_seq = 1
+    click_gen_mol = '[C-1]#[N+1][C-1]=[C-1]C(OP=NCN=COP(=O)(F)F)PCl'
+    find_gen_mol_sql = f"select * from optim_mol where user_seq = {current_user_seq} and g_canosmiles = '{click_gen_mol}'"
+
+    gen_mol_info = pd.read_sql(find_gen_mol_sql, conn)
+    gen_mol_info = gen_mol_info.apply(lambda col: col.map(lob_to_str))
+
+    return_value = gen_mol_info.to_dict(orient='records')
+    return {'optim_molecule_show_return_value' : return_value}
