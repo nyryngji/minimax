@@ -8,8 +8,8 @@
 |------|------|------------|
 | 권민정 | AI, 백엔드 |  분자 생성 AI,  독성 예측 AI, 유전 알고리즘, Backend |
 | 김정민 | UI, 프론트엔드 | UI/UX 구현, FrontEnd |
-| 배수한 | AI | pKi 모델 학습 |
-| 김하늘 | AI | pKd 모델 학습 |
+| 배수한 | AI | pKi 모델 학습, 유전 알고리즘 |
+| 김하늘 | AI | pKd 모델 학습, 유전 알고리즘 |
   
 #### 2. Stack
 - **AI** : Python, Transformer, HuggingFace
