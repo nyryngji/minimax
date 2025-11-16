@@ -43,5 +43,6 @@ uvicorn main:app --reload
 <br>
 
 #### 5. 시연 영상
- 
-  
+
+https://github.com/user-attachments/assets/d94ea1bf-a3f0-4c30-a0ba-5505a4775bf7
+
