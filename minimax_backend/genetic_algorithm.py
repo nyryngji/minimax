@@ -1,6 +1,9 @@
+# 참조 : https://magmatart.dev/development/2020/01/05/Python-Genetic-Example.html
+
 import json
-from prediction_all import *
-# 파일 열기
+from func import *
+
+
 with open("D:\minimax\minimax_backend\model\\for_predict_file\\vocab.json", "r", encoding="utf-8") as f:
     data = json.load(f)   # JSON → 파이썬 딕셔너리/리스트 변환
 

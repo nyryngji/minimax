@@ -3,7 +3,7 @@ import torch.nn as nn
 import math
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-checkpoint = torch.load('D:\minimax원본\molecule_generation\\transformer_parameter\model_checkpoint.pt', map_location=device, weights_only=False)
+checkpoint = torch.load('D:\minimax\molecule_generation\\transformer_parameter\model_checkpoint.pt', map_location=device, weights_only=False)
 token2id = checkpoint['token2id']
 id2token = checkpoint['id2token']
 

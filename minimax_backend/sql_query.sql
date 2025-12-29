@@ -178,3 +178,11 @@ CHECK (
     (p_category <> 'R' AND p_btn_category IS NULL)
 );
 
+delete from OPTIM_MOL;
+commit;
+delete from generate_mol;
+commit;
+delete from PARENTS_MOL;
+commit;
+
+select * from remedy_list;
