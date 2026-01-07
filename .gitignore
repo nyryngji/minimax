@@ -8,7 +8,6 @@ __pycache__/
 build/cache/
 node_modules/.cache/
 
-*.json
 *.csv
 */sts-b-dir
 minimax_backend/*.json
