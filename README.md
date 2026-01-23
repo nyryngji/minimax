@@ -1,48 +1,31 @@
-#### 💊MINIMAX : B2B를 대상으로 한 AI 기반 신약 후보 물질 발굴·최적화 플랫폼(2025.09.01 ~ 2025.11.17)
+#### MIMICare : MIMIC SICU 중환자 임상 데이터를 기반으로 한 실시간 모니터링 서비스 (2025.12.29 ~ 2026.01.19)
 
 ---
 
 #### 1. 팀원 역할 분배
 
-| 이름 | 역할 | 담당 업무 |
-|------|------|------------|
-| 권민정 | AI, 백엔드 |  분자 생성 AI,  독성 예측 AI, 유전 알고리즘, Backend |
-| 김정민 | UI, 프론트엔드 | UI/UX 구현, FrontEnd |
-| 배수한 | AI | pKi 모델 학습, 유전 알고리즘 |
-| 김하늘 | AI | pKd 모델 학습, 유전 알고리즘 |
-  
+| 이름 | 담당 업무 |
+|------|------------|
+| 문예진 | 프로젝트 총괄, DB 구축 및 적재, AI 총괄 |
+| 권민정 | 빅데이터 전처리, DB 구축 & 적재, Streamlit 기반 서비스 구현 |
+| 윤지우 | 도메인 분석, AI 변수 기준 수립, AI 모델 시각화 |
+| 이시은 | 도메인 분석, AI 변수 기준 수립, 문서 관리 |
+| 배순은 | 데이터 전처리, AI 변수 가공, 통계 분석 |
+
+
 #### 2. Stack
-- **AI** : Python, Transformer, HuggingFace
-- **FrontEnd** : TypeScript, React
-- **BackEnd** : FastAPI 
-- **Database** : OracleDB 
-- **etc** : Deechem, pubchempy, rdkit, chembl
+- **AI** : XGBoostClassifier, nnUNet
+- **FrontEnd & BackEnd** : Streamlit
+- **Database** : PostgreSQL 
 
 
-#### 3. backend 실행
-```bash
-python -m .venv venv
-cd D:\minimax\.venv\Scripts
-.\activate
-cd D:\minimax\minimax_backend
-pip install -r requirements.txt
-```
-```bash
-& D:/minimax/.venv/Scripts/Activate.ps1
-uvicorn main:app --reload
-
-# http://127.0.0.1:8000/docs 로 들어가기
-```
-
-
-#### 4. 서비스 구성도
-<img width="600" height="300" alt="image" src="https://github.com/user-attachments/assets/b1a0199b-2cf5-42dc-a4bd-cfb398fd4b88" />
+#### 3. 서비스 구성도
+<img width="800" height="500" alt="mimicare" src="https://github.com/user-attachments/assets/3211f20c-5b66-42e3-a5ec-f8a0cabb743c" />
 
 </details>
 
 <br>
 
-#### 5. 시연 영상
+#### 4. 시연 영상
 
-https://github.com/user-attachments/assets/d94ea1bf-a3f0-4c30-a0ba-5505a4775bf7
-
+https://www.youtube.com/watch?v=ey2c4cSZLpw
